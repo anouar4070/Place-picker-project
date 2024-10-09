@@ -7,13 +7,19 @@ import DeleteConfirmation from "./components/DeleteConfirmation.jsx";
 import logoImg from "./assets/logo.png";
 import { sortPlacesByDistance } from "./loc.js";
 
+const storedIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
+const storedPlaces = storedIds.map((id) =>
+  AVAILABLE_PLACES.find((place) => place.id === id)
+);
+
 function App() {
+ 
   const modal = useRef();
   const selectedPlace = useRef();
   const [availablePlaces, setAvailablePlaces] = useState([]);
+  const [pickedPlaces, setPickedPlaces] = useState(storedPlaces);
 
-  const [pickedPlaces, setPickedPlaces] = useState([]);
-
+  //without useEffect, the component would try to set the state every time it re-renders, and since setting the state causes a re-render, you'd end up in an infinite loop.
   useEffect(() => {
     navigator.geolocation.getCurrentPosition((position) => {
       const sortedPlaces = sortPlacesByDistance(
@@ -37,12 +43,24 @@ function App() {
 
   function handleSelectPlace(id) {
     setPickedPlaces((prevPickedPlaces) => {
+      //Check if Place is Already Picked
       if (prevPickedPlaces.some((place) => place.id === id)) {
         return prevPickedPlaces;
       }
+      //Add New Place to the List
       const place = AVAILABLE_PLACES.find((place) => place.id === id);
+      //Update State
       return [place, ...prevPickedPlaces];
     });
+
+    const storedIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
+    // if this id is not a part of storedIds yet
+    if (storedIds.indexOf(id) === -1) {
+      localStorage.setItem(
+        "selectedPlaces",
+        JSON.stringify([id, ...storedIds])
+      );
+    }
   }
 
   function handleRemovePlace() {
@@ -50,6 +68,12 @@ function App() {
       prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
     );
     modal.current.close();
+
+    const storedIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
+    localStorage.setItem(
+      "selectedPlaces",
+      JSON.stringify(storedIds.filter((id) => id !== selectedPlace.current))
+    );
   }
 
   return (
